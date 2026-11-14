@@ -85,23 +85,26 @@ Durante uma simulação de ataque DDoS, o banco de dados ficou indisponível par
 
 ---
 
-## 3. ⏱️ Linha do tempo
-**Tabela horário | ação | resultado**
+## 3. Linha do tempo do incidente
 
-| 🕐 Horário | ⚙️ Ação | 📌 Resultado |
-|:----------:|:--------|:-------------|
-|            |         |              |
-
+- **T0 − 38s a T0 − 26s**: conexões da role `app` iniciadas com `pg_sleep(300)`, esgotando o `CONNECTION LIMIT 3`.
+- **13:22 (T0)**: erro no terminal ao tentar conectar; banco indisponível para a aplicação.
+- **13:22 a 13:24**: execução dos comandos `ALTER ROLE app SET statement_timeout` e `idle_session_timeout`.
+- **13:22 a 13:24**: nova tentativa de conexão com `pg_sleep(300)` encerrada pelo `statement_timeout`.
+- **13:24**: serviço restabelecido; DBeaver mostra a tabela de conexões vazia.
+- **13:39**: `SELECT COUNT(*)` retorna 1000 clientes, confirmando que nenhum dado foi perdido.
+  
 ---
 
 ## 4. 📊 Medições
-**RTO, RPO e failover, com cálculo e comandos.**
 
-| 📏 Métrica | 🧮 Cálculo | 💻 Comando |
-|:-----------|:-----------|:-----------|
-| RTO        |            |            |
-| RPO        |            |            |
-| Failover   |            |            |
+| Métrica | Valor | Cálculo |
+|---|---|---|
+| **RTO** | 2 minutos | 13:24 − 13:22 |
+| **RPO** | 0 (nenhum dado perdido) | `COUNT(*)` = 1000 clientes após a recuperação |
+
+- **13:22 (T0):** momento em que o erro apareceu no terminal, marcando o início da indisponibilidade da role `app`.
+- **13:24:** momento em que a tabela de conexões apareceu vazia no DBeaver, marcando o fim da indisponibilidade (serviço restabelecido).
 
 ---
 
@@ -159,37 +162,15 @@ Já o **PITR** (Point-in-Time Recovery) permite restaurar o banco para um moment
 
 ## 8. 🚧 Prevenção e lições
 
-### 🛡️ Prevenção
+**Prevenção:** é recomendável manter timeouts (`statement_timeout` e `idle_session_timeout`) configurados desde o início, usar um pool de conexões como o PgBouncer e monitorar o uso de conexões por role com alertas antes de atingir o limite.
 
-| Camada | Medida | Exemplo |
-|:-------|:-------|:--------|
-| 🗄️ Banco | Timeouts por role | `statement_timeout`, `idle_session_timeout` e `idle_in_transaction_session_timeout` |
-| 🗄️ Banco | Limite de conexões por role, com reserva para administração | `CONNECTION LIMIT` por role e `superuser_reserved_connections` |
-| 🔌 Aplicação | Pool/proxy de conexões | PgBouncer ou RDS Proxy, reaproveitando conexões e impondo filas e limites próprios |
-| 🌐 Rede | Filtragem de tráfego malicioso antes de chegar ao banco | Banco em rede privada, AWS Shield, WAF e rate limiting |
-| 👀 Observabilidade | Monitoramento e alertas de conexões | Alerta quando o uso de slots passar de um limiar, consultando `pg_stat_activity` |
-| ☁️ Resiliência | Alta disponibilidade e recuperação | Multi-AZ, backups automáticos e PITR |
+**Lições:** o incidente mostrou a necessidade de um failover: o ambiente tinha apenas um banco principal e sua réplica, sem nenhum mecanismo que promovesse outro banco para assumir o papel do principal caso ele falhasse. Nesse sentido, o uso de bancos de dados fornecidos por cloud providers é mais interessante.
 
 ```sql
 -- Monitoramento: conexões ativas por role
 SELECT usename, state, count(*)
 FROM pg_stat_activity
 GROUP BY usename, state;
-
--- Timeout adicional para transações abandonadas
-ALTER ROLE app SET idle_in_transaction_session_timeout = '10s';
-```
-
-### 🎓 Lições
-
-- ⏳ **Sem timeout, uma sessão lenta vira um ponto único de falha.** Os valores padrão (0) significam que nada encerra conexões ocupadas.
-- 🔒 **Limites por role isolam o dano**, mas um limite baixo também facilita o esgotamento. Ele precisa vir acompanhado de timeouts e de pool.
-- 🟢 **Banco em funcionamento não é o mesmo que serviço disponível.** O banco seguiu saudável e íntegro, mas a aplicação ficou fora do ar.
-- 🧱 **Réplica local não é alta disponibilidade.** Dois bancos na mesma máquina compartilham o mesmo ponto de falha.
-- 📈 **Monitorar antes de sofrer.** Alertas de saturação de conexões permitem agir antes da indisponibilidade.
-- 🧪 **Simular incidentes em ambiente controlado** transforma teoria em evidência: o antes e o depois foram comprovados com comandos e mensagens de erro reais.
-
----
 
 ## 9. ❓ Respostas às perguntas do cenário
 
