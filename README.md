@@ -78,7 +78,6 @@ comprovando que o banco não aceita mais conexões para essa role e, portanto, e
 ---
 
 ## 2. 📝 Resumo do incidente
-**3 a 5 linhas, com suas palavras.**
 
 Durante uma simulação de ataque DDoS, o banco de dados ficou indisponível para a aplicação às 13:22, depois que um grande volume de conexões demoradas ocupou todas as vagas disponíveis. Novas tentativas de acesso foram recusadas, embora o banco continuasse em funcionamento. Foram aplicadas regras para encerrar automaticamente conexões que demoram demais, e o serviço voltou ao normal às 13:24. A verificação posterior confirmou que todos os dados permaneceram intactos.
 
@@ -86,7 +85,7 @@ Durante uma simulação de ataque DDoS, o banco de dados ficou indisponível par
 
 ## 3. Linha do tempo do incidente
 
-- **T0 − 38s a T0 − 26s**: conexões da role `app` iniciadas com `pg_sleep(300)`, esgotando o `CONNECTION LIMIT 3`.
+- **Entre 38s a 26s antes*: conexões da role `app` iniciadas com `pg_sleep(300)`, esgotando o `CONNECTION LIMIT 3`.
 - **13:22 (T0)**: erro no terminal ao tentar conectar; banco indisponível para a aplicação.
 - **13:22 a 13:24**: execução dos comandos `ALTER ROLE app SET statement_timeout` e `idle_session_timeout`.
 - **13:22 a 13:24**: nova tentativa de conexão com `pg_sleep(300)` encerrada pelo `statement_timeout`.
@@ -141,7 +140,7 @@ Com o comando anterior, definimos esses limites de tempo para 3 e 5s, fazendo en
 
 É possível afirmar que uma variedade de serviços tanto relativos a Banco de Dados quanto Networking oferecidos por CSPs (Cloud Service Providers) contam com funcionalidades de proteção e mitigação contra ataques DDoS. Utilizando a AWS (Amazon Web Services) como exemplo, essa proteção é feita em camadas combinando serviços diversos que trabalham juntos para filtrar tráfego malicioso.
 
-### 🛑 AWS Shield
+### 🛑 AWS
 
 Entre esses serviços, é possível mencionar as capacidades do **AWS Shield Standard**, já implantado por padrão em serviços como Amazon CloudFront e Route 53. Para cenários mais críticos, existe ainda o **AWS Shield Advanced** que adiciona detecção e mitigação mais robustas, além de diagnóstico detalhado e capacidades de aprendizado de máquina.
 
