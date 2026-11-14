@@ -144,7 +144,17 @@ ALTER ROLE app SET idle_session_timeout = '5s';
 
 > ⚠️ É importante mencionar que Roles em PostgreSQL por padrão não contém nenhum tempo de timeout relativo ao tempo de um comando SQL (`statement_timeout`) nem de sessão inativa (`idle_session_timeout`).
 
-Com o comando anterior, definimos esses limites de tempo para 3 e 5s, fazendo então com que as conexões atuais de 300s não se mantenham e retornamos a um banco sem conexões e, portanto, disponível. Temos a prova que essa solução funcionou ao tentarmos uma nova conexão de 500s e recebermos `canceling statement due to statement timeout`, e ao verificarmos a ausência de conexões no banco.
+Para liberar o banco de imediato, as sessões existentes foram encerradas manualmente:
+
+```sql
+SELECT pg_terminate_backend(pid)
+FROM pg_stat_activity
+WHERE usename = 'app';
+```
+
+O `pg_terminate_backend` finaliza o processo de cada sessão da role `app`, derrubando a conexão e liberando o slot. Com isso, o banco voltou a ficar sem conexões e, portanto, disponível.
+
+Temos a prova que essa solução funcionou ao tentarmos uma nova conexão de 500s e recebermos `canceling statement due to statement timeout`, e ao verificarmos a ausência de conexões no banco.
 
 | Estado | Resultado |
 |:-------|:----------|
