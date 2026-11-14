@@ -64,7 +64,25 @@ Posteriormente, ao abrir três terminais e rodar o comando:
 docker compose exec primary psql -U app -d postgres -c "SELECT pg_sleep(300);"
 ```
 
-criamos três conexões a esse banco, que foram verificadas no DBeaver. Ao tentar uma quarta conexão, recebemos o erro:
+criamos três conexões a esse banco, que foram verificadas no DBeaver. 
+
+Podemos fazer uma checagem do status de cada uma dessas conexões ao rodar a seguinte query:
+
+```sql
+SELECT pid, usename, state, now() - query_start AS tempo
+FROM pg_stat_activity WHERE usename = 'app';
+```
+
+Em que:
+
+- 🔢 `pid` é o ID de cada conexão;
+- 👤 `usename` é a role da conexão, aqui filtrada para somente `'app'`;
+- 🚦 `state` é o status atual, podendo ser `active` (executando) ou `idle` (inativa)
+- ⏱️ `now() - query_start AS tempo` como um cálculo rápido entre o momento atual e o início das queries iniciadas pelas conexões
+
+Ao rodar isso, recebemos uma tabela mostrando as três conexões, cada uma representada por uma linha, com `state = active` e `tempo` crescendo até 5 minutos, provando o esgotamento do limite de conexões.
+
+Ao tentar uma quarta conexão, recebemos o erro:
 
 ```text
 psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  too many connections for role "app"
