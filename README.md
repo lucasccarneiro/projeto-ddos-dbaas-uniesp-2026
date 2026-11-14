@@ -98,11 +98,11 @@ Durante uma simulação de ataque DDoS, o banco de dados ficou indisponível par
 
 | Métrica | Valor | Cálculo |
 |---|---|---|
-| **RTO** | 2 minutos | 13:24 − 13:22 |
+| **RTO** | 2 minutos | 13:24(T1) − 13:22(T0) |
 | **RPO** | 0 (nenhum dado perdido) | `COUNT(*)` = 1000 clientes após a recuperação |
 
 - **13:22 (T0):** momento em que o erro apareceu no terminal, marcando o início da indisponibilidade da role `app`.
-- **13:24:** momento em que a tabela de conexões apareceu vazia no DBeaver, marcando o fim da indisponibilidade (serviço restabelecido).
+- **13:24 (T1):** momento em que a tabela de conexões apareceu vazia no DBeaver, marcando o fim da indisponibilidade (serviço restabelecido).
 
 ---
 
